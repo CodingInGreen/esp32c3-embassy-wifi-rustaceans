@@ -606,7 +606,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "esp32c3-embassy-wifi-rustaceans"
+name = "f1-wifi"
 version = "0.1.0"
 dependencies = [
  "embassy-executor",
