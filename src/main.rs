@@ -14,7 +14,6 @@
 #![no_std]
 #![no_main]
 
-use embedded_io::{Read, Write};
 use esp_backtrace as _;
 use esp_hal::{
     clock::ClockControl,
@@ -36,10 +35,7 @@ use esp_wifi::{
     wifi_interface::WifiStack,
     EspWifiInitFor,
 };
-use smoltcp::{
-    iface::SocketStorage,
-    wire::{IpAddress, Ipv4Address},
-};
+use smoltcp::iface::SocketStorage;
 
 const SSID: &str = env!("SSID");
 const PASSWORD: &str = env!("PASSWORD");
@@ -138,99 +134,10 @@ fn main() -> ! {
         }
     }
 
-    println!("Start busy loop on main. Connect to the AP `esp-wifi` and point your browser to http://192.168.2.1:8080/");
-    println!("Use a static IP in the range 192.168.2.2 .. 192.168.2.255, use gateway 192.168.2.1");
-
-    let mut rx_buffer = [0u8; 1536];
-    let mut tx_buffer = [0u8; 1536];
-    let mut ap_socket = wifi_ap_stack.get_socket(&mut rx_buffer, &mut tx_buffer);
-
-    let mut sta_rx_buffer = [0u8; 1536];
-    let mut sta_tx_buffer = [0u8; 1536];
-    let mut sta_socket = wifi_sta_stack.get_socket(&mut sta_rx_buffer, &mut sta_tx_buffer);
-
-    ap_socket.listen(8080).unwrap();
+    println!("The program has ended....");
 
     loop {
-        ap_socket.work();
 
-        if !ap_socket.is_open() {
-            ap_socket.listen(8080).unwrap();
-        }
-
-        if ap_socket.is_connected() {
-            println!("Connected");
-
-            let mut time_out = false;
-            let wait_end = current_millis() + 20 * 1000;
-            let mut buffer = [0u8; 1024];
-            let mut pos = 0;
-            loop {
-                if let Ok(len) = ap_socket.read(&mut buffer[pos..]) {
-                    let to_print =
-                        unsafe { core::str::from_utf8_unchecked(&buffer[..(pos + len)]) };
-
-                    if to_print.contains("\r\n\r\n") {
-                        print!("{}", to_print);
-                        println!();
-                        break;
-                    }
-
-                    pos += len;
-                } else {
-                    break;
-                }
-
-                if current_millis() > wait_end {
-                    println!("Timeout");
-                    time_out = true;
-                    break;
-                }
-            }
-
-            if !time_out {
-                println!("Making HTTP request");
-                sta_socket.work();
-
-                sta_socket
-                    .open(IpAddress::Ipv4(Ipv4Address::new(142, 250, 185, 115)), 80)
-                    .unwrap();
-
-                sta_socket
-                    .write(b"GET / HTTP/1.0\r\nHost: www.mobile-j.de\r\n\r\n")
-                    .unwrap();
-                sta_socket.flush().unwrap();
-
-                let wait_end = current_millis() + 20 * 1000;
-                loop {
-                    let mut buffer = [0u8; 512];
-                    if let Ok(len) = sta_socket.read(&mut buffer) {
-                        ap_socket.write_all(&buffer[..len]).unwrap();
-                        ap_socket.flush().unwrap();
-                    } else {
-                        break;
-                    }
-
-                    if current_millis() > wait_end {
-                        println!("Timeout");
-                        break;
-                    }
-                }
-                println!();
-
-                sta_socket.disconnect();
-            }
-
-            ap_socket.close();
-
-            println!("Done\n");
-            println!();
-        }
-
-        let wait_end = current_millis() + 5 * 1000;
-        while current_millis() < wait_end {
-            ap_socket.work();
-        }
     }
 }
 
