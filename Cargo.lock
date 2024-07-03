@@ -612,6 +612,7 @@ dependencies = [
  "embassy-executor",
  "embassy-net",
  "embassy-time",
+ "embedded-io",
  "embedded-io-async",
  "embedded-svc",
  "esp-backtrace",

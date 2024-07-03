@@ -14,6 +14,7 @@
 #![no_std]
 #![no_main]
 
+use embedded_io::{Read, Write};
 use esp_backtrace as _;
 use esp_hal::{
     clock::ClockControl,
